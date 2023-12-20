@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+
+    stages {
+        
+        stage('Github_clone') {
+            steps {
+                echo 'cloning the Git Code'
+                git url:"https://github.com/Samir-Sutar/notes-deveops-app.git" ,branch:"main"
+            }
+        }
+        stage('Creating_image') {
+            steps {
+                echo 'Building Image'
+                sh "docker build -t git-note-app ."
+            }
+        }
+        stage('Deploying_on_DockerHub') {
+            steps {
+                echo 'uploading image to DockerHub'
+                withCredentials([usernamePassword(credentialsId:"dockerhub",passwordVariable:"passDock",usernameVariable:"UDock")]){
+                    sh "docker login -u ${env.UDock} -p ${env.passDock}"
+                    sh " docker tag git-note-app ${env.UDock}/git-note-app:latest"
+                    sh "docker push ${env.UDock}/git-note-app:latest"
+                }
+            }
+        }
+        stage('RUN on EC2') {
+            steps {
+                echo 'deploying to the Server'
+                sh" docker-compose down && docker-compose up -d"
+            }
+        }
+    }
+}
